@@ -184,3 +184,138 @@ shravan@shravanshetty:~$
 9. jar -cvf WordCount.jar *.class
 10. hadoop jar WordCount.jar WCDriver /rgs/test.txt /output
 11. hadoop fs -cat /output/part-00000
+
+
+
+
+
+
+
+.Create Three Java Classes into the project. Name them WCDriver(having the main
+function), WCMapper, WCReducer.
+// Importing libraries
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.MapReduceBase;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+public class WCMapper extends MapReduceBase implements
+Mapper&lt;LongWritable,Text, Text, IntWritable&gt; {
+// Map function
+public void map(LongWritable key, Text value, OutputCollector&lt;Text,
+IntWritable&gt; output, Reporter rep) throws IOException
+
+{
+String line = value.toString();
+// Splitting the line on spaces
+for (String word : line.split(&quot; &quot;))
+{
+if (word.length() &gt; 0)
+{
+output.collect(new Text(word), new IntWritable(1));
+}
+}
+}
+}
+
+Reducer Code: You have to copy paste this program into the WCReducer Java Class
+file.
+ // Importing libraries
+import java.io.IOException;
+import java.util.Iterator;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.MapReduceBase;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reducer;
+import org.apache.hadoop.mapred.Reporter;
+public class WCReducer extends MapReduceBase implements
+Reducer&lt;Text,IntWritable, Text, IntWritable&gt; {
+// Reduce function
+public void reduce(Text key, Iterator&lt;IntWritable&gt; value,
+OutputCollector&lt;Text, IntWritable&gt; output,
+
+Reporter rep) throws IOException
+
+{
+int count = 0;
+// Counting the frequency of each words
+while (value.hasNext())
+{
+IntWritable i = value.next();
+count += i.get();
+}
+output.collect(key, new IntWritable(count));
+}
+}
+
+Driver Code: You have to copy paste this program into the WCDriver Java Class file.
+// Importing libraries
+import java.io.IOException;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileOutputFormat;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+public class WCDriver extends Configured implements Tool {
+public int run(String args[]) throws IOException
+{
+if (args.length &lt; 2)
+{
+System.out.println(&quot;Please give valid inputs&quot;);
+return -1;
+}
+JobConf conf = new JobConf(WCDriver.class);
+FileInputFormat.setInputPaths(conf, new Path(args[0]));
+FileOutputFormat.setOutputPath(conf, new Path(args[1]));
+conf.setMapperClass(WCMapper.class);
+conf.setReducerClass(WCReducer.class);
+conf.setMapOutputKeyClass(Text.class);
+conf.setMapOutputValueClass(IntWritable.class);
+conf.setOutputKeyClass(Text.class);
+conf.setOutputValueClass(IntWritable.class);
+JobClient.runJob(conf);
+return 0;
+}
+
+// Main Method
+public static void main(String args[]) throws Exception
+{
+int exitCode = ToolRunner.run(new WCDriver(), args);
+System.out.println(exitCode);
+}
+}
+
+3. create a file on Desktop(sample.txt) and type the below lines:
+hi how are you
+how is your job
+how is your family
+how is your brother
+how is your sister
+
+save your file in /home/hadoop/input
+
+5. View the directory content
+hadoop fs -ls /
+
+6. Create a directory using the following command. If any directory existing,
+use the same directory for the command
+hadoop fs -mkdir /inputbda
+7. Copy the file into HDFS
+hadoop fs -copyFromLocal /input/sample.txt /inputbda or
+hadoop fs –put /input/sample.txt /inputbda
+hadoop fs -ls /inputbda
+
+8.Run the Map Reduce Program
+hadoop jar /home/hduser/Desktop/wordcount.jar WCDriver /inputbda/sample.txt
+/outputbda
+9. hadoop fs -ls /outputbda
+10. hadoop fs -cat /outputbda/part-00000
